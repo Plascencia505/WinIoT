@@ -15,7 +15,6 @@ class SoundSensorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 0 a 4095 -> 0% a 100%
     double percentage = SensorConfig.getStandardPercentage(rawValue);
 
     return Container(
@@ -47,8 +46,6 @@ class SoundSensorCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
               value: percentage,
-              // Color de fondo suave basado en el color principal
-              // ignore: deprecated_member_use
               backgroundColor: color.withOpacity(0.15),
               valueColor: AlwaysStoppedAnimation(color),
               minHeight: 10,

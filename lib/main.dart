@@ -39,14 +39,18 @@ class MainDashboardPage extends StatefulWidget {
 }
 
 class _MainDashboardPageState extends State<MainDashboardPage> {
-  // CORRECCIÓN 1: Apuntamos directo al nodo 'ventana'
+  // Referencia al nodo raíz 'ventana'
   final DatabaseReference _dbRef = FirebaseDatabase.instance.ref('ventana');
+
+  // --- ESTADO DE CARGA ---
+  bool _isLoading = true; // Empieza cargando para no mostrar datos falsos
 
   // Variables de Estado
   bool _isWindowOpen = false;
   bool _isFanActive = false;
   bool _isAutoMode = false;
   bool _isLocked = false;
+  String _alertMessage = "Sincronizando...";
 
   // Variables de Sensores
   double _tempExt = 0.0;
@@ -59,7 +63,6 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
 
   // Anti-Spam
   DateTime? _lastActionTime;
-
   StreamSubscription<DatabaseEvent>? _globalSub;
 
   @override
@@ -69,58 +72,61 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
   }
 
   void _initListeners() {
-    _globalSub = _dbRef.onValue.listen((event) {
-      final data = event.snapshot.value;
+    // Escuchamos cambios. Este evento se dispara INMEDIATAMENTE al conectar.
+    _globalSub = _dbRef.onValue.listen(
+      (event) {
+        final data = event.snapshot.value;
 
-      // Verificamos que data no sea null y sea un Mapa
-      if (data != null && data is Map) {
         if (mounted) {
           setState(() {
-            // --- CORRECCIÓN 2: MAPEO EXACTO A TU JSON ---
+            if (data != null && data is Map) {
+              // 1. Mapeo de Datos (Parseo Seguro)
+              _lluviaRaw = (data['lluvia'] as num?)?.toInt() ?? 4095;
+              _luzRaw = (data['luminosidad'] as num?)?.toInt() ?? 0;
+              _humedadVal = (data['humedad_interior'] as num?)?.toInt() ?? 0;
 
-            // 1. Datos que están "sueltos" en la raíz de 'ventana'
-            _lluviaRaw = (data['lluvia'] as num?)?.toInt() ?? 4095;
-            _luzRaw = (data['luminosidad'] as num?)?.toInt() ?? 0;
-            _humedadVal = (data['humedad_interior'] as num?)?.toInt() ?? 0;
+              if (data['posicion'] is Map) {
+                _isWindowOpen = (data['posicion']['is_open'] as bool?) ?? false;
+              }
 
-            // 2. Carpeta "posicion"
-            if (data['posicion'] is Map) {
-              final pos = data['posicion'] as Map;
-              _isWindowOpen = (pos['is_open'] as bool?) ?? false;
-            }
+              if (data['sistema'] is Map) {
+                final sys = data['sistema'] as Map;
+                _isLocked = (sys['is_lock'] as bool?) ?? false;
+                _isFanActive = (sys['fan_active'] as bool?) ?? false;
+                _alertMessage = (sys['alerta'] as String?) ?? "SISTEMA ONLINE";
 
-            // 3. Carpeta "sistema"
-            if (data['sistema'] is Map) {
-              final sys = data['sistema'] as Map;
-              _isLocked = (sys['is_lock'] as bool?) ?? false;
-              _isFanActive = (sys['fan_active'] as bool?) ?? false;
+                final modoVal = sys['modo'];
+                if (modoVal is String) {
+                  _isAutoMode = (modoVal.toUpperCase() == "AUTO");
+                } else {
+                  _isAutoMode = false;
+                }
+              }
 
-              // Modo (puede venir como String "AUTO" o bool)
-              final modoVal = sys['modo'];
-              if (modoVal is String) {
-                _isAutoMode = (modoVal.toUpperCase() == "AUTO");
-              } else {
-                _isAutoMode = false;
+              if (data['temperatura'] is Map) {
+                final temp = data['temperatura'] as Map;
+                _tempInt = (temp['interior'] as num?)?.toDouble() ?? 0.0;
+                _tempExt = (temp['exterior'] as num?)?.toDouble() ?? 0.0;
+              }
+
+              if (data['sonido'] is Map) {
+                final sound = data['sonido'] as Map;
+                _sonidoInt = (sound['interior'] as num?)?.toInt() ?? 0;
+                _sonidoExt = (sound['exterior'] as num?)?.toInt() ?? 0;
               }
             }
 
-            // 4. Carpeta "temperatura"
-            if (data['temperatura'] is Map) {
-              final temp = data['temperatura'] as Map;
-              _tempInt = (temp['interior'] as num?)?.toDouble() ?? 0.0;
-              _tempExt = (temp['exterior'] as num?)?.toDouble() ?? 0.0;
-            }
-
-            // 5. Carpeta "sonido"
-            if (data['sonido'] is Map) {
-              final sound = data['sonido'] as Map;
-              _sonidoInt = (sound['interior'] as num?)?.toInt() ?? 0;
-              _sonidoExt = (sound['exterior'] as num?)?.toInt() ?? 0;
-            }
+            // IMPORTANTE: Una vez leídos los datos (o si era null), quitamos la carga
+            _isLoading = false;
           });
         }
-      }
-    });
+      },
+      onError: (error) {
+        // Si hay error, también quitamos la carga para mostrar algo (aunque sean defaults)
+        if (mounted) setState(() => _isLoading = false);
+        debugPrint("Error Firebase: $error");
+      },
+    );
   }
 
   bool _canAct() {
@@ -150,6 +156,27 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    // --- PANTALLA DE CARGA ---
+    // Si aún no leemos Firebase, mostramos esto en lugar del Dashboard
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 20),
+              Text(
+                "Sincronizando con la Ventana...",
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // --- DASHBOARD PRINCIPAL ---
     bool isHot = _tempInt > 25.0;
     bool isRaining = _lluviaRaw < 1800;
     bool isDaytime = _luzRaw > 100;
@@ -168,7 +195,6 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           if (!_canAct()) return;
-
           if (isRaining) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("🚫 Bloqueado por LLUVIA")),
@@ -188,7 +214,6 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
             return;
           }
 
-          // CORRECCIÓN 3: Ruta de escritura correcta
           _dbRef.child('posicion/is_open').set(!_isWindowOpen);
         },
         backgroundColor: (isRaining || _isLocked)
@@ -221,6 +246,7 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
               isDaytime: isDaytime,
               luzRaw: _luzRaw,
               ishumid: _humedadVal,
+              alertMessage: _alertMessage,
             ),
             const SizedBox(height: 25),
 
@@ -230,49 +256,60 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
               isRaining: isRaining,
               onWindowToggle: () {
                 if (!_canAct()) return;
-                if (isRaining || _isLocked || _isAutoMode) return;
-                // Ruta correcta
+                if (isRaining || _isLocked || _isAutoMode) {
+                  // Feedback visual ya está en el botón flotante, pero por si tocan la tarjeta:
+                  if (isRaining)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("🚫 Lluvia detectada")),
+                    );
+                  else if (_isLocked)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("🔒 Sistema Bloqueado")),
+                    );
+                  else if (_isAutoMode)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("🤖 Modo Automático Activo"),
+                      ),
+                    );
+                  return;
+                }
                 _dbRef.child('posicion/is_open').set(!_isWindowOpen);
               },
 
               isSwitchOn: _isAutoMode,
               onSwitchChanged: (val) {
                 if (isRaining || _isLocked) return;
-                // Ruta correcta
                 _dbRef.child('sistema/modo').set(val ? "AUTO" : "MANUAL");
               },
 
               isLocked: _isLocked,
               onLockChanged: (val) {
+                // REGLA: No bloquear si la ventana está abierta
                 if (val == true && _isWindowOpen) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text(
-                        "⚠️ Por seguridad, CIERRA la ventana antes de bloquear.",
-                      ),
+                      content: Text("⚠️ Cierra la ventana antes de bloquear"),
                       backgroundColor: Colors.orange,
                     ),
                   );
                   return;
                 }
+                // REGLA: No desbloquear si llueve
                 if (isRaining && !val) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text(
-                        "🚫 Lluvia detectada: No se puede desbloquear.",
-                      ),
+                      content: Text("🚫 Lluvia: No se puede desbloquear"),
                     ),
                   );
                   return;
                 }
-                // Ruta correcta
                 _dbRef.child('sistema/is_lock').set(val);
               },
 
               isFanActive: _isFanActive,
               onFanActive: (val) {
                 if (isRaining || _isLocked || _isAutoMode) return;
-                // Ruta correcta
                 _dbRef.child('sistema/fan_active').set(val);
               },
             ),

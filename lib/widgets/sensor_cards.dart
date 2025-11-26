@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import '../config/sensor_config.dart'; // Asegúrate de importar la config
+import '../config/sensor_config.dart';
 
-// --- HEADER DEL SISTEMA ---
+// --- HEADER DEL SISTEMA (INTEGRADO CON ALERTA) ---
 class SystemHeader extends StatelessWidget {
   final bool isHot;
   final bool isRaining;
   final bool isDaytime;
   final int luzRaw;
   final int ishumid;
+  final String alertMessage; // Mensaje de Firebase
 
   const SystemHeader({
     super.key,
@@ -16,10 +17,35 @@ class SystemHeader extends StatelessWidget {
     required this.isDaytime,
     required this.luzRaw,
     required this.ishumid,
+    required this.alertMessage,
   });
 
   @override
   Widget build(BuildContext context) {
+    Color statusColor;
+    IconData statusIcon;
+
+    // Lógica de color basada en la Alerta o Sensores
+    if (isRaining || alertMessage.contains("LLUVIA")) {
+      statusColor = Colors.red;
+      statusIcon = Icons.thunderstorm;
+    } else if (isHot ||
+        alertMessage.contains("CONFORT") ||
+        alertMessage.contains("SOFOCO")) {
+      statusColor = Colors.orange;
+      statusIcon = Icons.thermostat;
+    } else if (alertMessage.contains("NOCHE")) {
+      statusColor = Colors.indigo;
+      statusIcon = Icons.nightlight_round;
+    } else if (alertMessage.contains("BLOQUEO") ||
+        alertMessage.contains("RUIDO")) {
+      statusColor = Colors.grey;
+      statusIcon = Icons.lock;
+    } else {
+      statusColor = Colors.green;
+      statusIcon = Icons.check_circle;
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -35,34 +61,29 @@ class SystemHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            isRaining
-                ? Icons.thunderstorm
-                : (isHot ? Icons.thermostat_outlined : Icons.check_circle),
-            color: (isRaining || isHot) ? Colors.orange : Colors.green,
-            size: 35,
-          ),
+          Icon(statusIcon, color: statusColor, size: 40),
           const SizedBox(width: 15),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Diagnóstico del Sistema",
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-              Text(
-                isRaining
-                    ? "¡LLUVIA EN CURSO!"
-                    : (isHot ? "TEMPERATURA ALTA" : "TODO NORMAL"),
-                style: TextStyle(
-                  color: (isRaining || isHot)
-                      ? Colors.orange.shade800
-                      : Colors.green.shade700,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Estado del Sistema",
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  alertMessage.toUpperCase(), // Muestra el mensaje de Firebase
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -70,7 +91,7 @@ class SystemHeader extends StatelessWidget {
   }
 }
 
-// --- TARJETA DE TEMPERATURA ---
+// --- TEMP ---
 class TempSensorTile extends StatelessWidget {
   final String title;
   final double value;
@@ -119,20 +140,17 @@ class TempSensorTile extends StatelessWidget {
   }
 }
 
-// --- TARJETA DE LLUVIA (CALIBRADA) ---
+// --- LLUVIA ---
 class RainSensorCard extends StatelessWidget {
   final int rawValue;
   const RainSensorCard({super.key, required this.rawValue});
 
   @override
   Widget build(BuildContext context) {
-    // Usamos la fórmula inversa (4095 es seco)
     double percentage = SensorConfig.getInversePercentage(rawValue);
-
     String status;
     Color color;
 
-    // Reglas basadas en tus lecturas
     if (percentage < 0.15) {
       status = "Seco";
       color = Colors.grey;
@@ -140,11 +158,9 @@ class RainSensorCard extends StatelessWidget {
       status = "Rocío / Húmedo";
       color = Colors.blue.shade300;
     } else if (rawValue > 1800) {
-      // Si es mayor a 1800 (pero húmedo)
       status = "Lluvia Ligera";
       color = Colors.blue;
     } else {
-      // Si rawValue < 1800
       status = "PELIGRO - LLUVIA";
       color = Colors.red;
     }
@@ -160,11 +176,10 @@ class RainSensorCard extends StatelessWidget {
   }
 }
 
-// --- TARJETA DE LUZ (CALIBRADA) ---
+// --- LUZ ---
 class LightSensorCard extends StatelessWidget {
   final bool isDaytime;
   final int luzRaw;
-
   const LightSensorCard({
     super.key,
     required this.isDaytime,
@@ -174,7 +189,6 @@ class LightSensorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     double percentage = SensorConfig.getLuxPercentage(luzRaw);
-
     return _BaseEnvCard(
       icon: (isDaytime ? Icons.light_mode : Icons.nightlight_round),
       color: (isDaytime ? Colors.amber : Colors.indigo),
@@ -186,7 +200,7 @@ class LightSensorCard extends StatelessWidget {
   }
 }
 
-// --- BASE CARD PRIVADA ---
+// --- BASE ---
 class _BaseEnvCard extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -194,7 +208,6 @@ class _BaseEnvCard extends StatelessWidget {
   final String status;
   final double percentage;
   final int rawVal;
-
   const _BaseEnvCard({
     required this.icon,
     required this.color,

@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 
 class WindowControlCard extends StatelessWidget {
   final bool isOpen;
-  final bool isRaining; // NUEVO
+  final bool isRaining;
   final VoidCallback onWindowToggle;
+
   final bool isSwitchOn;
   final ValueChanged<bool> onSwitchChanged;
+
   final bool isLocked;
   final ValueChanged<bool> onLockChanged;
+
   final bool isFanActive;
   final ValueChanged<bool> onFanActive;
 
@@ -26,7 +29,6 @@ class WindowControlCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Bloqueo total si llueve o hay candado
     bool systemBlocked = isLocked || isRaining;
 
     return Container(
@@ -35,7 +37,7 @@ class WindowControlCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isRaining
-              ? [Colors.grey.shade700, Colors.blueGrey.shade900] // Color Lluvia
+              ? [Colors.grey.shade700, Colors.blueGrey.shade900]
               : (isOpen
                     ? [Colors.cyan.shade400, Colors.blue.shade600]
                     : [Colors.indigo.shade400, Colors.deepPurple.shade600]),
@@ -53,7 +55,7 @@ class WindowControlCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // BOTÓN PRINCIPAL
+          // BOTONERA
           Material(
             color: Colors.transparent,
             child: InkWell(
@@ -127,7 +129,7 @@ class WindowControlCard extends StatelessWidget {
             child: Divider(color: Colors.white24, height: 1),
           ),
 
-          // INTERRUPTORES
+          // SWITCHES
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
             child: Column(
@@ -137,7 +139,7 @@ class WindowControlCard extends StatelessWidget {
                   val: isSwitchOn,
                   onChg: onSwitchChanged,
                   icon: Icons.auto_mode,
-                  disabled: systemBlocked, // Se deshabilita si hay bloqueo
+                  disabled: systemBlocked,
                 ),
                 _buildSwitchRow(
                   label: "Bloqueo de Seguridad",
@@ -145,16 +147,14 @@ class WindowControlCard extends StatelessWidget {
                   onChg: onLockChanged,
                   icon: isLocked ? Icons.lock : Icons.lock_open,
                   activeColor: Colors.orangeAccent,
-                  disabled:
-                      isRaining, // Solo la lluvia impide desbloquear manual
+                  disabled: isRaining,
                 ),
                 _buildSwitchRow(
                   label: "Ventilador",
                   val: isFanActive,
                   onChg: onFanActive,
                   icon: Icons.air,
-                  disabled:
-                      systemBlocked || isSwitchOn, // Bloqueado si Auto o Lock
+                  disabled: systemBlocked || isSwitchOn,
                 ),
               ],
             ),
