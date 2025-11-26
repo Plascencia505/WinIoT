@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "1045753947623",
+    "firebase_url": "https://proyectowiniot-default-rtdb.firebaseio.com",
+    "project_id": "proyectowiniot",
+    "storage_bucket": "proyectowiniot.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1045753947623:android:a6ddde85e53ead6b874942",
+        "android_client_info": {
+          "package_name": "com.example.flutter_ventana"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4qGZyxsDSCO4A61f0N5te3SrLvolUk6Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1045753947623:android:ee49f07f5500fe54874942",
+        "android_client_info": {
+          "package_name": "com.gapf.proyectowiniot"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4qGZyxsDSCO4A61f0N5te3SrLvolUk6Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
