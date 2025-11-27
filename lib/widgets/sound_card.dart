@@ -46,6 +46,7 @@ class SoundSensorCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
               value: percentage,
+              // ignore: deprecated_member_use
               backgroundColor: color.withOpacity(0.15),
               valueColor: AlwaysStoppedAnimation(color),
               minHeight: 10,

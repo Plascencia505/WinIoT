@@ -258,20 +258,21 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
                 if (!_canAct()) return;
                 if (isRaining || _isLocked || _isAutoMode) {
                   // Feedback visual ya está en el botón flotante, pero por si tocan la tarjeta:
-                  if (isRaining)
+                  if (isRaining) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("🚫 Lluvia detectada")),
                     );
-                  else if (_isLocked)
+                  } else if (_isLocked) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("🔒 Sistema Bloqueado")),
                     );
-                  else if (_isAutoMode)
+                  } else if (_isAutoMode) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text("🤖 Modo Automático Activo"),
                       ),
                     );
+                  }
                   return;
                 }
                 _dbRef.child('posicion/is_open').set(!_isWindowOpen);
