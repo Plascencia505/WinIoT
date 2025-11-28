@@ -178,7 +178,7 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
 
     // --- DASHBOARD PRINCIPAL ---
     bool isHot = _tempInt > 25.0;
-    bool isRaining = _lluviaRaw < 1800;
+    bool isRaining = _lluviaRaw < 2200;
     bool isDaytime = _luzRaw > 100;
 
     return Scaffold(

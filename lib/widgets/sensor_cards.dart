@@ -157,7 +157,7 @@ class RainSensorCard extends StatelessWidget {
     } else if (percentage < 0.45) {
       status = "Rocío / Húmedo";
       color = Colors.blue.shade300;
-    } else if (rawValue > 1800) {
+    } else if (rawValue > 2000) {
       status = "Lluvia Ligera";
       color = Colors.blue;
     } else {
